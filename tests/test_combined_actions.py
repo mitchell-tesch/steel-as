@@ -28,8 +28,8 @@ def restrained_member(ub150) -> SteelMember:
     return SteelMember(section=ub150, l_ex=3000, l_ey=3000, l_eb=0, k_t=0.75)
 
 
-def _member(library: MemberLibrary, name: str) -> SteelMember:
-    return SteelMember(section=SteelSection.from_library(library, name))
+def _member(library: MemberLibrary, name: str, **kwargs) -> SteelMember:
+    return SteelMember(section=SteelSection.from_library(library, name), **kwargs)
 
 
 @pytest.fixture(scope="module")
@@ -50,6 +50,25 @@ def pfc150() -> SteelMember:
 @pytest.fixture(scope="module")
 def uc250() -> SteelMember:
     return _member(MemberLibrary.OpenSections, "250UC72.9 (GR300)")
+
+
+# braced in-plane with k_e = 0.7, no transverse load
+BEAM_COLUMN = dict(
+    l=3000,
+    l_ex=2100,
+    l_ey=3000,
+    l_eb=3000,
+    l_z=3000,
+    alpha_m=1.3,
+    beta_mx=0.5,
+    beta_my=0,
+    transverse_load=False,
+)
+
+
+@pytest.fixture(scope="module")
+def beam_column(ub150) -> SteelMember:
+    return SteelMember(section=ub150, **BEAM_COLUMN)
 
 
 def test_capacities_used_in_hand_calcs(member, restrained_member):
@@ -177,3 +196,96 @@ def test_section_biaxial_ratio(
 
 def test_section_biaxial_ratio_axial_force_exceeds_capacity(member):
     assert member.section_biaxial_ratio(-700, 1, 1, alternative=True) == math.inf
+
+
+def test_beam_column_capacities_used_in_hand_calcs(beam_column):
+    capacities = dict(M_sx=43.2, M_sy=8.61, M_bx=26.6, N_s=735, N_t=735, N_cx=671, N_cy=131)
+    assert {k: getattr(beam_column, k) for k in capacities} == pytest.approx(capacities)
+
+
+@pytest.mark.parametrize(
+    "method, N_star, alternative, expected",
+    [
+        # Cl 8.4.2.2 general, N_cx with k_e = 0.7
+        ("M_ix", -100, False, 36.05),  # 43.2 * (1 - 100 / (0.9 * 671))
+        # Cl 8.4.2.2 alternative, N_c = 617.5 with k_e = 1, k = ((1 + 0.5) / 2) ** 3
+        ("M_ix", -100, True, 39.96),  # 43.2 * ((1 - k) * c + 1.18 * k * c ** 0.5)
+        ("M_ix", -20, True, 43.2),  # 45.19 > M_rx
+        ("M_iy", -50, True, 5.303),  # N_cy = 131 as l = l_ey, k = 0.125
+        # Cl 8.4.4.1.1
+        ("M_ox", -50, False, 15.32),  # 26.6 * (1 - 50 / (0.9 * 131))
+        # Cl 8.4.4.1.2, alpha_bc = 2.648, M_box = 20.50 (alpha_m = 1), N_oz = 1327
+        ("M_ox", -50, True, 40.32),  # 2.648 * 20.50 * ((1 - 50/117.9) * (1 - 50/1194)) ** 0.5
+        ("M_cx", -50, False, 15.32),  # min(M_ix = 39.62, M_ox = 15.32)
+        ("M_cx", -50, True, 40.32),  # min(M_ix = 43.2, M_ox = 40.32)
+        # tension members, alternative M_r
+        ("M_ix", 300, True, 27.86),  # Cl 8.4.2.3, 1.18 * 43.2 * (1 - 300 / (0.9 * 735))
+        ("M_iy", 300, True, 8.139),  # Cl 8.4.2.3, 1.19 * 8.61 * (1 - (300 / 661.5) ** 2)
+        ("M_ox", 300, False, 23.61),  # Cl 8.4.4.2, 26.6 * (1 + 300 / 661.5) = 38.66 > M_rx
+        ("M_ox", 300, True, 27.86),  # Cl 8.4.4.2, 38.66 > alternative M_rx
+    ],
+)
+def test_member_capacities(beam_column, method, N_star, alternative, expected):
+    capacity = getattr(beam_column, method)(N_star, alternative)
+    assert capacity == pytest.approx(expected, rel=1e-3)
+
+
+@pytest.mark.parametrize("method", ["M_ix", "M_iy"])
+@pytest.mark.parametrize("N_star", [-100, -50, -10])
+def test_in_plane_alternative_for_uniform_moment_is_general(ub150, method, N_star):
+    m = SteelMember(section=ub150, l=3000, l_ex=3000, l_ey=3000, beta_mx=-1, beta_my=-1)
+    capacity = getattr(m, method)
+    assert capacity(N_star, alternative=True) == pytest.approx(capacity(N_star), rel=1e-3)
+
+
+@pytest.mark.parametrize(
+    "library, name",
+    [
+        (MemberLibrary.OpenSections, "610UB101 (GR300)"),  # k_f < 1
+        (MemberLibrary.OpenSections, "150PFC (GR300)"),  # not doubly symmetric
+        (MemberLibrary.OpenSections, "250UC72.9 (GR300)"),  # not compact
+    ],
+)
+@pytest.mark.parametrize("method", ["M_ix", "M_iy", "M_ox"])
+def test_member_alternatives_fall_back_to_general(library, name, method):
+    capacity = getattr(_member(library, name, **BEAM_COLUMN), method)
+    assert capacity(-100, alternative=True) == capacity(-100)
+
+
+@pytest.mark.parametrize(
+    "library, name, overrides",
+    [
+        (MemberLibrary.OpenSections, "150UB18.0 (GR300)", dict(transverse_load=True)),
+        (MemberLibrary.HollowSections, "125x75x6RHS (C450)", {}),  # I-sections only
+    ],
+)
+def test_M_ox_alternative_falls_back_to_general(library, name, overrides):
+    m = _member(library, name, **{**BEAM_COLUMN, **overrides})
+    assert m.M_ox(-50, alternative=True) == m.M_ox(-50)
+
+
+@pytest.mark.parametrize("method, length", [("M_ix", "l"), ("M_iy", "l"), ("M_ox", "l_z")])
+def test_member_alternatives_require_length(ub150, method, length):
+    m = SteelMember(section=ub150, **{**BEAM_COLUMN, length: 0})
+    with pytest.raises(ValueError, match=f"^{length} is required"):
+        getattr(m, method)(-50, alternative=True)
+
+
+@pytest.mark.parametrize(
+    "N_star, M_x_star, M_y_star, alternative, expected",
+    [
+        # (M_x*/phi M_cx)^1.4 + (M_y*/phi M_iy)^1.4
+        (-50, 5, 1, False, 0.3649),  # M_cx = 15.32, M_iy = 4.959
+        (-50, 5, 1, True, 0.1745),  # M_cx = 40.32, M_iy = 5.303
+        # Cl 8.4.5.2 tension, (M_x*/phi M_tx)^1.4 + (M_y*/phi M_ry)^1.4
+        (300, 10, 2, True, 0.4386),  # M_tx = 27.86, M_ry = 8.139
+    ],
+)
+def test_member_biaxial_ratio(beam_column, N_star, M_x_star, M_y_star, alternative, expected):
+    ratio = beam_column.member_biaxial_ratio(N_star, M_x_star, M_y_star, alternative)
+    assert ratio == pytest.approx(expected, rel=1e-3)
+
+
+def test_member_biaxial_ratio_axial_force_exceeds_capacity(beam_column):
+    # N* > phiN_cy = 117.9
+    assert beam_column.member_biaxial_ratio(-200, 1, 1) == math.inf
