@@ -435,43 +435,54 @@ class SteelMember:
         return N_t
 
     # ------------------------------------------------------------------------
-    # AS4100 Section combined actions ---------
+    # AS4100 Section 8 Members subject to combined actions -------------------
     # ------------------------------------------------------------------------
+    # N_star is the design axial force in kN, tension positive.
+    # Capacities are nominal (kNm), for design checks of the form M* <= phi * M.
 
-    def M_ix(self, N_star, l_ex):
-        if N_star <= 0:
-            return self.M_sx() * (1 + N_star / (self.phi["N_c"] * self.N_cx(l_ex)))
-        else:
-            return None
+    @staticmethod
+    def _reduce(M: float, N_star: float, phiN: float) -> float:
+        """moment capacity M reduced linearly by axial force, not less than zero"""
+        return max(M * (1 - abs(N_star) / phiN), 0)
 
-    def M_iy(self, N_star, l_ey):
-        if N_star <= 0:
-            return self.M_sy() * (1 + N_star / (self.phi["N_c"] * self.N_cy(l_ey)))
-        else:
-            return None
+    def _phiN_section(self, N_star: float) -> float:
+        """AS4100 Cl 8.3 design section capacity in axial tension or compression"""
+        return self.phi * (self.N_t if N_star > 0 else self.N_s)
 
-    def M_rx(self, N_star):
-        return self.M_sx() * (1 - abs(N_star) / (self.phi["N_s"] * self.N_t()))
+    def M_rx(self, N_star: float) -> float:
+        """AS4100 Cl 8.3.2 nominal section moment capacity (x-axis) reduced by axial force"""
+        return self._reduce(self.M_sx, N_star, self._phiN_section(N_star))
 
-    def M_ox(self, N_star, l_eb, l_ey, alpha_m):
-        if N_star <= 0:
-            # compression
-            return self.M_bx(l_eb, alpha_m) * (
-                1 + N_star / (self.phi["N_c"] * self.N_cy(l_ey))
-            )
-        else:
-            # tension
+    def M_ry(self, N_star: float) -> float:
+        """AS4100 Cl 8.3.3 nominal section moment capacity (y-axis) reduced by axial force"""
+        return self._reduce(self.M_sy, N_star, self._phiN_section(N_star))
+
+    def M_ix(self, N_star: float) -> float:
+        """AS4100 Cl 8.4.2 nominal in-plane member moment capacity (x-axis)"""
+        if N_star > 0:
+            # Cl 8.4.2.3 tension members
+            return self.M_rx(N_star)
+        return self._reduce(self.M_sx, N_star, self.phi * self.N_cx)
+
+    def M_iy(self, N_star: float) -> float:
+        """AS4100 Cl 8.4.2 nominal in-plane member moment capacity (y-axis)"""
+        if N_star > 0:
+            # Cl 8.4.2.3 tension members
+            return self.M_ry(N_star)
+        return self._reduce(self.M_sy, N_star, self.phi * self.N_cy)
+
+    def M_ox(self, N_star: float) -> float:
+        """AS4100 Cl 8.4.4 nominal out-of-plane member moment capacity"""
+        if N_star > 0:
+            # Cl 8.4.4.2 tension members
             return min(
-                self.M_bx(l_eb, alpha_m)
-                * (1 + N_star / (self.phi["N_c"] * self.N_t())),
-                self.M_rx(N_star),
+                self.M_bx * (1 + N_star / (self.phi * self.N_t)), self.M_rx(N_star)
             )
+        return self._reduce(self.M_bx, N_star, self.phi * self.N_cy)
 
-    def M_cx(self, N_star, l_ex, l_ey, l_eb, alpha_m):
-        try:
-            return min(self.M_ix(N_star, l_ey), self.M_ox(N_star, l_eb, l_ey, alpha_m))
-        except:
-            return self.M_ox(N_star, l_eb, l_ey, alpha_m)
+    def M_cx(self, N_star: float) -> float:
+        """AS4100 Cl 8.4.5 nominal member moment capacity (x-axis), lesser of M_ix and M_ox"""
+        return min(self.M_ix(N_star), self.M_ox(N_star))
 
     # shear calculations -----------------------------------------------------
 
