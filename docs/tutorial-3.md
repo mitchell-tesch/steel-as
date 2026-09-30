@@ -137,7 +137,7 @@ Passing `alternative=True` to the above methods uses the alternative (higher cap
 | 8.3.3(b) | RHS, SHS | compact about y-axis |
 | 8.3.4 | UB, UC, WB, WC, RHS, SHS | compact about both axes |
 | 8.4.2.2 | UB, UC, WB, WC, RHS, SHS | compact about the bending axis; compression with $k_f = 1$ |
-| 8.4.4.1.2 | UB, UC, WB, WC | compact about x-axis; compression with $k_f = 1$; no transverse load; full or partially restraint both ends |
+| 8.4.4.1.2 | UB, UC, WB, WC | compact about x-axis; compression with $k_f = 1$; no transverse load; full or partially restrained both ends |
 
 The alternative member capacities use the following *SteelMember* attributes:
 
