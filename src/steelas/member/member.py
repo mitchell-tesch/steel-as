@@ -490,7 +490,7 @@ class SteelMember:
         """AS4100 Cl 8.3.3 nominal section moment capacity (y-axis) reduced by axial force"""
         phiN = self._phiN_section(N_star)
         M_ry = self._reduce(self.M_sy, N_star, phiN)
-        if not alternative or (N_star <= 0 and self.section.k_f != 1):
+        if not alternative:
             return M_ry
         if self._is_compact("y", _I_SECTIONS):
             # Cl 8.3.3(a)
@@ -609,6 +609,8 @@ class SteelMember:
         if not (
             alternative
             and not self.transverse_load
+            and self.end_i_restraint 
+            and self.end_j_restraint
             and self.section.k_f == 1
             and self._is_compact("x", _I_SECTIONS)
         ):
@@ -622,8 +624,8 @@ class SteelMember:
             return 0
         k = ((1 + self.beta_mx) / 2) ** 3
         alpha_bc = 1 / ((1 - self.beta_mx) / 2 + k * (0.4 - 0.23 * n_cy))
-        M_box = self._M_bx(alpha_m=1) / 1e6
-        M_ox = alpha_bc * M_box * ((1 - n_cy) * (1 - n_oz)) ** 0.5
+        M_bxo = self._M_bx(alpha_m=1) / 1e6
+        M_ox = alpha_bc * M_bxo * ((1 - n_cy) * (1 - n_oz)) ** 0.5
         return min(M_ox, self.M_rx(N_star, alternative=True))
 
     def M_cx(self, N_star: float, alternative: bool = False) -> float:

@@ -133,11 +133,11 @@ Passing `alternative=True` to the above methods uses the alternative (higher cap
 |---|---|---|
 | 8.3.2(a) | UB, UC, WB, WC, RHS, SHS | compact about x-axis; tension, or compression with $k_f = 1$ |
 | 8.3.2(b) | UB, UC, WB, WC, RHS, SHS | compact about x-axis; compression with $k_f < 1$ |
-| 8.3.3(a) | UB, UC, WB, WC | compact about y-axis; tension, or compression with $k_f = 1$ |
-| 8.3.3(b) | RHS, SHS | compact about y-axis; tension, or compression with $k_f = 1$ |
+| 8.3.3(a) | UB, UC, WB, WC | compact about y-axis |
+| 8.3.3(b) | RHS, SHS | compact about y-axis |
 | 8.3.4 | UB, UC, WB, WC, RHS, SHS | compact about both axes |
 | 8.4.2.2 | UB, UC, WB, WC, RHS, SHS | compact about the bending axis; compression with $k_f = 1$ |
-| 8.4.4.1.2 | UB, UC, WB, WC | compact about x-axis; compression with $k_f = 1$; no transverse load |
+| 8.4.4.1.2 | UB, UC, WB, WC | compact about x-axis; compression with $k_f = 1$; no transverse load; full or partially restraint both ends |
 
 The alternative member capacities use the following *SteelMember* attributes:
 
@@ -147,6 +147,8 @@ The alternative member capacities use the following *SteelMember* attributes:
 | `l_z` | distance between torsional restraints, required for Clause 8.4.4.1.2 |
 | `beta_mx`, `beta_my` | ratio of end moments $\beta_m$, positive for reverse curvature (default -1, uniform moment) |
 | `transverse_load` | set to `False` if the member has no transverse load (Clause 8.4.4.1.2) |
+| `end_i_restraint`, `end_j_restraint` | set to `True` if the respective end is fully or partially restrained (Clause 8.4.4.1.2) |
+
 
 Input and evaluation of combined actions using *steelas* is detailed further with reference to the following example, with answers from hand calculation.
 
