@@ -14,4 +14,4 @@ sm.report(attribute_names=["phiN_t", "phiN_s", "phiV_v", "phiM_sx", "phiM_sy"])
 # Calculate member capacities
 sm = SteelMember(section=section, l_ex=21000, l_ey=4000, l_eb=0, alpha_m=1)
 sm.report()
-print(sm.phiN_c)
+print(f"{sm.phiN_c:.0f} kN")

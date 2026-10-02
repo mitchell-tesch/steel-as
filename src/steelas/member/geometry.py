@@ -14,7 +14,7 @@ Functions:
 
 from __future__ import annotations
 
-from math import floor, log10, isnan
+from math import isnan
 from dataclasses import dataclass, field
 from enum import StrEnum
 import numpy as np
@@ -75,7 +75,7 @@ class SectionGeometry:
         I_w (float): Warping constant.
         J (float): Torsional constant.
         x_c, y_c (float): Coordinates of the centroid, default to 0.
-        sig_figs (int): Number of significant figures for rounding calculations, defaults to 4.
+        sig_figs (int): Number of significant figures shown by report(), defaults to 4.
     """
 
     name: str = ""
@@ -107,7 +107,7 @@ class SectionGeometry:
     x_c: float = 0
     y_c: float = 0
 
-    # round values to a number of significant figures
+    # significant figures shown by report()
     sig_figs: int = field(repr=False, default=4)
 
     def __post_init__(self):
@@ -149,14 +149,6 @@ class SectionGeometry:
         self.Z_y = self._Z_y()
         self.r_x = self._r_x()
         self.r_y = self._r_y()
-
-        # round to sig figs
-        if self.sig_figs:
-            for k, v in list(self.__dict__.items()):
-                if isinstance(v, (float, int)) and (not isnan(v)) and (v != 0):
-                    setattr(
-                        self, k, round(v, self.sig_figs - int(floor(log10(abs(v)))) - 1)
-                    )
 
     def _Z_x(self) -> float:
         return self.I_x / self.y_max

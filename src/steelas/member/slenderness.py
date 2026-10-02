@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Tuple
 import numpy as np
-from math import pi, isnan, floor, log10
+from math import pi, isnan
 
 # from structuraldesigntoolbox.
 from steelas.member.material import SteelMaterial
@@ -56,7 +56,7 @@ class SteelSlenderness:
 
     slender_section_type_x: int = 1  # determines which equation in Cl 5.2.5 is used
 
-    # round values to a number of significant figures
+    # significant figures shown by report()
     sig_figs: int = 3
 
     def __post_init__(self):
@@ -85,16 +85,6 @@ class SteelSlenderness:
                 self.geom, self.mat
             )
             self.solve_slenderness()
-
-            # round to sig figs
-            if self.sig_figs:
-                for k, v in list(self.__dict__.items()):
-                    if isinstance(v, (float, int)) and (not isnan(v)) and (v != 0):
-                        setattr(
-                            self,
-                            k,
-                            round(v, self.sig_figs - int(floor(log10(abs(v)))) - 1),
-                        )
 
     def solve_slenderness(self):
         # compact_x

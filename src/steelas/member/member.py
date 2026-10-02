@@ -4,7 +4,7 @@ from __future__ import annotations
 # for pi in member buckling
 import numpy as np
 from dataclasses import dataclass, field
-from math import isnan, floor, log10, inf
+from math import isnan, inf
 
 from steelas.data.io import get_section_from_library, MemberLibrary
 from steelas.member.material import SteelMaterial
@@ -235,7 +235,7 @@ class SteelMember:
     phiM_x: float = 0
     phiM_y: float = 0
 
-    # round values to a number of significant figures
+    # significant figures shown by report()
     sig_figs: int = 3
 
     def __post_init__(self):
@@ -269,14 +269,6 @@ class SteelMember:
         self.phiM_sy = self.phi * self.M_sy
 
         self.phiN_c = self.phi * min(self.N_s, self.N_cx, self.N_cy)
-
-        # round to sig figs
-        if self.sig_figs:
-            for k, v in list(self.__dict__.items()):
-                if isinstance(v, (float, int)) and (not isnan(v)) and (v != 0):
-                    setattr(
-                        self, k, round(v, self.sig_figs - int(floor(log10(abs(v)))) - 1)
-                    )
 
     def report(self, **kwargs) -> None:
         report(self, exclude_attribute_names=["section"], **kwargs)

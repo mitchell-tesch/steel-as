@@ -73,33 +73,30 @@ def beam_column(ub150) -> SteelMember:
 
 def test_capacities_used_in_hand_calcs(member, restrained_member):
     assert member.phi == 0.9
-    assert member.M_sx == pytest.approx(43.2)
-    assert member.M_sy == pytest.approx(8.61)
-    assert member.M_bx == pytest.approx(20.5)
-    assert member.N_s == pytest.approx(735)
-    assert member.N_t == pytest.approx(644)
-    assert member.N_cx == pytest.approx(618)
-    assert member.N_cy == pytest.approx(131)
-    assert restrained_member.M_bx == pytest.approx(43.2)
+    capacities = dict(
+        M_sx=43.216, M_sy=8.6013, M_bx=20.501, N_s=734.70, N_t=644.01, N_cx=617.53, N_cy=131.35
+    )
+    assert {k: getattr(member, k) for k in capacities} == pytest.approx(capacities, rel=1e-4)
+    assert restrained_member.M_bx == pytest.approx(43.216, rel=1e-4)
 
 
 @pytest.mark.parametrize(
     "method, N_star, expected",
     [
-        ("M_rx", 0, 43.2),  # M_sx
-        ("M_rx", -100, 36.67),  # 43.2 * (1 - 100 / (0.9 * 735))
-        ("M_rx", 100, 35.75),  # 43.2 * (1 - 100 / (0.9 * 644))
+        ("M_rx", 0, 43.216),  # M_sx
+        ("M_rx", -100, 36.68),  # 43.216 * (1 - 100 / (0.9 * 734.70))
+        ("M_rx", 100, 35.76),  # 43.216 * (1 - 100 / (0.9 * 644.01))
         ("M_rx", -700, 0),  # N* > phiN_s
-        ("M_ry", -100, 7.308),  # 8.61 * (1 - 100 / (0.9 * 735))
-        ("M_ry", 100, 7.124),  # 8.61 * (1 - 100 / (0.9 * 644))
-        ("M_ix", -100, 35.43),  # 43.2 * (1 - 100 / (0.9 * 618))
-        ("M_ix", 100, 35.75),  # Cl 8.4.2.3, M_rx
-        ("M_iy", -50, 4.959),  # 8.61 * (1 - 50 / (0.9 * 131))
-        ("M_iy", 100, 7.124),  # Cl 8.4.2.3, M_ry
-        ("M_ox", -50, 11.81),  # 20.5 * (1 - 50 / (0.9 * 131))
-        ("M_ox", 100, 24.04),  # 20.5 * (1 + 100 / (0.9 * 644)) < M_rx = 35.75
-        ("M_cx", -50, 11.81),  # min(M_ix = 39.32, M_ox = 11.81)
-        ("M_cx", 100, 24.04),  # min(M_rx = 35.75, M_ox = 24.04)
+        ("M_ry", -100, 7.300),  # 8.6013 * (1 - 100 / (0.9 * 734.70))
+        ("M_ry", 100, 7.117),  # 8.6013 * (1 - 100 / (0.9 * 644.01))
+        ("M_ix", -100, 35.44),  # 43.216 * (1 - 100 / (0.9 * 617.53))
+        ("M_ix", 100, 35.76),  # Cl 8.4.2.3, M_rx
+        ("M_iy", -50, 4.963),  # 8.6013 * (1 - 50 / (0.9 * 131.35))
+        ("M_iy", 100, 7.117),  # Cl 8.4.2.3, M_ry
+        ("M_ox", -50, 11.83),  # 20.501 * (1 - 50 / (0.9 * 131.35))
+        ("M_ox", 100, 24.04),  # 20.501 * (1 + 100 / (0.9 * 644.01)) < M_rx = 35.76
+        ("M_cx", -50, 11.83),  # min(M_ix = 39.33, M_ox = 11.83)
+        ("M_cx", 100, 24.04),  # min(M_rx = 35.76, M_ox = 24.04)
     ],
 )
 def test_general_capacities(member, method, N_star, expected):
@@ -107,26 +104,26 @@ def test_general_capacities(member, method, N_star, expected):
 
 
 def test_M_ox_tension_limited_to_M_rx(restrained_member):
-    # 43.2 * (1 + 100 / (0.9 * 644)) = 50.65 > M_rx = 35.75
-    assert restrained_member.M_ox(100) == pytest.approx(35.75, rel=1e-3)
+    # 43.216 * (1 + 100 / (0.9 * 644.01)) = 50.67 > M_rx = 35.76
+    assert restrained_member.M_ox(100) == pytest.approx(35.76, rel=1e-3)
 
 
 @pytest.mark.parametrize(
     "fixture, compact, k_f, capacities",
     [
-        ("member", ("C", "C"), 1.0, dict(M_sx=43.2, M_sy=8.61, N_s=735, N_t=644)),
-        ("ub610", ("C", "C"), 0.888, dict(M_sx=870, M_sy=116, N_s=3460, N_t=3890)),
-        ("rhs125", ("C", "C"), 1.0, dict(M_sx=37.9, M_sy=26.6, N_s=959, N_t=906)),
-        ("pfc150", ("C", "C"), 1.0, dict(M_sx=41.3, M_sy=12.3, N_s=721, N_t=721)),
-        ("uc250", ("N", "N"), 1.0, dict(M_sx=296, M_sy=136, N_s=2800, N_t=2800)),
+        ("member", ("C", "C"), 1.0, dict(M_sx=43.216, M_sy=8.6013, N_s=734.70, N_t=644.01)),
+        ("ub610", ("C", "C"), 0.88819, dict(M_sx=869.20, M_sy=115.69, N_s=3459.8, N_t=3895.3)),
+        ("rhs125", ("C", "C"), 1.0, dict(M_sx=37.900, M_sy=26.600, N_s=959.58, N_t=906.27)),
+        ("pfc150", ("C", "C"), 1.0, dict(M_sx=41.140, M_sy=12.322, N_s=721.25, N_t=721.25)),
+        ("uc250", ("N", "N"), 1.0, dict(M_sx=295.67, M_sy=136.17, N_s=2796.1, N_t=2796.1)),
     ],
 )
 def test_sections_used_in_hand_calcs(request, fixture, compact, k_f, capacities):
     m = request.getfixturevalue(fixture)
     slenderness = m.section.slenderness
     assert (slenderness.compact_x, slenderness.compact_y) == compact
-    assert m.section.k_f == k_f
-    assert {k: getattr(m, k) for k in capacities} == pytest.approx(capacities)
+    assert m.section.k_f == pytest.approx(k_f, rel=1e-4)
+    assert {k: getattr(m, k) for k in capacities} == pytest.approx(capacities, rel=1e-4)
 
 
 def test_ub610_web_slenderness_used_in_hand_calcs(ub610):
@@ -139,24 +136,25 @@ def test_ub610_web_slenderness_used_in_hand_calcs(ub610):
     "fixture, method, N_star, expected",
     [
         # Cl 8.3.2(a), compression with k_f = 1
-        ("member", "M_rx", -300, 27.86),  # 1.18 * 43.2 * (1 - 300 / (0.9 * 735))
-        ("member", "M_rx", -100, 43.2),  # 1.18 * 36.67 = 43.27 > M_sx
-        ("rhs125", "M_rx", -300, 29.18),  # 1.18 * 37.9 * (1 - 300 / (0.9 * 959))
+        ("member", "M_rx", -300, 27.86),  # 1.18 * 43.216 * (1 - 300 / (0.9 * 734.70))
+        ("member", "M_rx", -100, 43.216),  # 1.18 * 36.68 = 43.28 > M_sx
+        ("rhs125", "M_rx", -300, 29.19),  # 1.18 * 37.900 * (1 - 300 / (0.9 * 959.58))
         # Cl 8.3.2(a), tension with k_f < 1
-        ("ub610", "M_rx", 1000, 733.4),  # 1.18 * 870 * (1 - 1000 / (0.9 * 3890))
-        # Cl 8.3.2(b): 870 * (1 - 1000 / (0.9 * 3460)) * (1 + 0.18 * (82 - 59.15) / (82 - 45))
-        ("ub610", "M_rx", -1000, 656.3),
+        ("ub610", "M_rx", 1000, 733.1),  # 1.18 * 869.20 * (1 - 1000 / (0.9 * 3895.3))
+        # Cl 8.3.2(b): 869.20 * (1 - 1000 / (0.9 * 3459.8)) * (1 + 0.18 * (82 - 59.15) / (82 - 45))
+        ("ub610", "M_rx", -1000, 655.6),
         # Cl 8.3.3(a)
-        ("member", "M_ry", -300, 8.139),  # 1.19 * 8.61 * (1 - (300 / (0.9 * 735)) ** 2)
-        ("member", "M_ry", 300, 7.501),  # 1.19 * 8.61 * (1 - (300 / (0.9 * 644)) ** 2)
-        ("ub610", "M_ry", 2000, 92.99),  # 1.19 * 116 * (1 - (2000 / (0.9 * 3890)) ** 2)
+        ("member", "M_ry", -300, 8.129),  # 1.19 * 8.6013 * (1 - (300 / (0.9 * 734.70)) ** 2)
+        ("member", "M_ry", 300, 7.493),  # 1.19 * 8.6013 * (1 - (300 / (0.9 * 644.01)) ** 2)
+        ("ub610", "M_ry", 2000, 92.87),  # 1.19 * 115.69 * (1 - (2000 / (0.9 * 3895.3)) ** 2)
+        # 1.19 * 115.69 * (1 - (1000 / (0.9 * 3459.8)) ** 2) = 123.5 > M_sy
+        ("ub610", "M_ry", -1000, 115.69),
         # Cl 8.3.3(b)
-        ("rhs125", "M_ry", -300, 20.48),  # 1.18 * 26.6 * (1 - 300 / (0.9 * 959))
-        # general form: compression with k_f < 1, not doubly symmetric, not compact
-        ("ub610", "M_ry", -1000, 116.0),  # 1.19 * 116 * (1 - (-1000 / (0.9 * 3460)) ** 2)
-        ("pfc150", "M_rx", -100, 34.94),  # 41.3 * (1 - 100 / (0.9 * 721))
-        ("pfc150", "M_ry", -100, 10.40),  # 12.3 * (1 - 100 / (0.9 * 721))
-        ("uc250", "M_rx", -500, 237.3),  # 296 * (1 - 500 / (0.9 * 2800))
+        ("rhs125", "M_ry", -300, 20.48),  # 1.18 * 26.600 * (1 - 300 / (0.9 * 959.58))
+        # general form: not doubly symmetric, not compact
+        ("pfc150", "M_rx", -100, 34.80),  # 41.140 * (1 - 100 / (0.9 * 721.25))
+        ("pfc150", "M_ry", -100, 10.42),  # 12.322 * (1 - 100 / (0.9 * 721.25))
+        ("uc250", "M_rx", -500, 236.9),  # 295.67 * (1 - 500 / (0.9 * 2796.1))
     ],
 )
 def test_alternative_section_capacities(request, fixture, method, N_star, expected):
@@ -178,12 +176,12 @@ def test_alternative_not_less_than_general(request, fixture, method, load_ratio)
     "fixture, N_star, M_x_star, M_y_star, alternative, expected",
     [
         # general: N*/phiN + M_x*/(phi M_sx) + M_y*/(phi M_sy)
-        ("member", -300, 10, 2, False, 0.9688),  # 300/661.5 + 10/38.88 + 2/7.749
-        ("pfc150", -100, 10, 3, True, 0.6941),  # 100/648.9 + 10/37.17 + 3/11.07
+        ("member", -300, 10, 2, False, 0.9692),  # 300/661.23 + 10/38.894 + 2/7.7412
+        ("pfc150", -100, 10, 3, True, 0.6947),  # 100/649.13 + 10/37.026 + 3/11.090
         # alternative: (M_x*/phi M_rx)^gamma + (M_y*/phi M_ry)^gamma
-        ("member", -300, 10, 2, True, 0.2722),  # gamma = 1.854, phiM_r = 25.07, 7.325
-        ("member", 300, 10, 2, True, 0.3150),  # gamma = 1.918, phiM_r = 22.13, 6.751
-        ("member", -500, 5, 1, True, 0.2633),  # gamma = 2.0 (limit), phiM_r = 11.20, 3.953
+        ("member", -300, 10, 2, True, 0.2723),  # gamma = 1.854, phiM_r = 25.07, 7.316
+        ("member", 300, 10, 2, True, 0.3150),  # gamma = 1.918, phiM_r = 22.14, 6.744
+        ("member", -500, 5, 1, True, 0.2639),  # gamma = 2.0 (limit), phiM_r = 11.19, 3.945
     ],
 )
 def test_section_biaxial_ratio(
@@ -199,30 +197,32 @@ def test_section_biaxial_ratio_axial_force_exceeds_capacity(member):
 
 
 def test_beam_column_capacities_used_in_hand_calcs(beam_column):
-    capacities = dict(M_sx=43.2, M_sy=8.61, M_bx=26.6, N_s=735, N_t=735, N_cx=671, N_cy=131)
-    assert {k: getattr(beam_column, k) for k in capacities} == pytest.approx(capacities)
+    capacities = dict(
+        M_sx=43.216, M_sy=8.6013, M_bx=26.651, N_s=734.70, N_t=734.70, N_cx=671.19, N_cy=131.35
+    )
+    assert {k: getattr(beam_column, k) for k in capacities} == pytest.approx(capacities, rel=1e-4)
 
 
 @pytest.mark.parametrize(
     "method, N_star, alternative, expected",
     [
         # Cl 8.4.2.2 general, N_cx with k_e = 0.7
-        ("M_ix", -100, False, 36.05),  # 43.2 * (1 - 100 / (0.9 * 671))
-        # Cl 8.4.2.2 alternative, N_c = 617.5 with k_e = 1, k = ((1 + 0.5) / 2) ** 3
-        ("M_ix", -100, True, 39.96),  # 43.2 * ((1 - k) * c + 1.18 * k * c ** 0.5)
-        ("M_ix", -20, True, 43.2),  # 45.19 > M_rx
-        ("M_iy", -50, True, 5.303),  # N_cy = 131 as l = l_ey, k = 0.125
+        ("M_ix", -100, False, 36.06),  # 43.216 * (1 - 100 / (0.9 * 671.19))
+        # Cl 8.4.2.2 alternative, N_c = 617.53 with k_e = 1, k = ((1 + 0.5) / 2) ** 3
+        ("M_ix", -100, True, 39.97),  # 43.216 * ((1 - k) * c + 1.18 * k * c ** 0.5)
+        ("M_ix", -20, True, 43.216),  # 45.21 > M_rx
+        ("M_iy", -50, True, 5.307),  # N_cy = 131.35 as l = l_ey, k = 0.125
         # Cl 8.4.4.1.1
-        ("M_ox", -50, False, 15.32),  # 26.6 * (1 - 50 / (0.9 * 131))
-        # Cl 8.4.4.1.2, alpha_bc = 2.648, M_box = 20.50 (alpha_m = 1), N_oz = 1327
-        ("M_ox", -50, True, 40.32),  # 2.648 * 20.50 * ((1 - 50/117.9) * (1 - 50/1194)) ** 0.5
-        ("M_cx", -50, False, 15.32),  # min(M_ix = 39.62, M_ox = 15.32)
-        ("M_cx", -50, True, 40.32),  # min(M_ix = 43.2, M_ox = 40.32)
+        ("M_ox", -50, False, 15.38),  # 26.651 * (1 - 50 / (0.9 * 131.35))
+        # Cl 8.4.4.1.2, alpha_bc = 2.648, M_box = 20.501 (alpha_m = 1), N_oz = 1326.5
+        ("M_ox", -50, True, 40.36),  # 2.648 * 20.501 * ((1 - 50/118.22) * (1 - 50/1193.9)) ** 0.5
+        ("M_cx", -50, False, 15.38),  # min(M_ix = 39.64, M_ox = 15.38)
+        ("M_cx", -50, True, 40.36),  # min(M_ix = 43.216, M_ox = 40.36)
         # tension members, alternative M_r
-        ("M_ix", 300, True, 27.86),  # Cl 8.4.2.3, 1.18 * 43.2 * (1 - 300 / (0.9 * 735))
-        ("M_iy", 300, True, 8.139),  # Cl 8.4.2.3, 1.19 * 8.61 * (1 - (300 / 661.5) ** 2)
-        ("M_ox", 300, False, 23.61),  # Cl 8.4.4.2, 26.6 * (1 + 300 / 661.5) = 38.66 > M_rx
-        ("M_ox", 300, True, 27.86),  # Cl 8.4.4.2, 38.66 > alternative M_rx
+        ("M_ix", 300, True, 27.86),  # Cl 8.4.2.3, 1.18 * 43.216 * (1 - 300 / (0.9 * 734.70))
+        ("M_iy", 300, True, 8.129),  # Cl 8.4.2.3, 1.19 * 8.6013 * (1 - (300 / 661.23) ** 2)
+        ("M_ox", 300, False, 23.61),  # Cl 8.4.4.2, 26.651 * (1 + 300 / 661.23) = 38.74 > M_rx
+        ("M_ox", 300, True, 27.86),  # Cl 8.4.4.2, 38.74 > alternative M_rx
     ],
 )
 def test_member_capacities(beam_column, method, N_star, alternative, expected):
@@ -275,10 +275,10 @@ def test_member_alternatives_require_length(ub150, method, length):
     "N_star, M_x_star, M_y_star, alternative, expected",
     [
         # (M_x*/phi M_cx)^1.4 + (M_y*/phi M_iy)^1.4
-        (-50, 5, 1, False, 0.3649),  # M_cx = 15.32, M_iy = 4.959
-        (-50, 5, 1, True, 0.1745),  # M_cx = 40.32, M_iy = 5.303
+        (-50, 5, 1, False, 0.3634),  # M_cx = 15.38, M_iy = 4.963
+        (-50, 5, 1, True, 0.1743),  # M_cx = 40.36, M_iy = 5.307
         # Cl 8.4.5.2 tension, (M_x*/phi M_tx)^1.4 + (M_y*/phi M_ry)^1.4
-        (300, 10, 2, True, 0.4386),  # M_tx = 27.86, M_ry = 8.139
+        (300, 10, 2, True, 0.4389),  # M_tx = 27.86, M_ry = 8.129
     ],
 )
 def test_member_biaxial_ratio(beam_column, N_star, M_x_star, M_y_star, alternative, expected):
@@ -287,5 +287,5 @@ def test_member_biaxial_ratio(beam_column, N_star, M_x_star, M_y_star, alternati
 
 
 def test_member_biaxial_ratio_axial_force_exceeds_capacity(beam_column):
-    # N* > phiN_cy = 117.9
+    # N* > phiN_cy = 118.2
     assert beam_column.member_biaxial_ratio(-200, 1, 1) == math.inf

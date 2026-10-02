@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 from enum import StrEnum
+from math import floor, isfinite, log10
 
 
 class MemberLibrary(StrEnum):
@@ -57,6 +58,13 @@ nomenclature_AS4100 = {
 }
 
 
+def round_sig(value, sig_figs: int):
+    """Round a float to sig_figs significant figures, other values are returned unchanged."""
+    if not sig_figs or not isinstance(value, float) or value == 0 or not isfinite(value):
+        return value
+    return round(value, sig_figs - floor(log10(abs(value))) - 1)
+
+
 def report(
     obj,
     attribute_names: str | list[str] | None = None,
@@ -86,6 +94,7 @@ def report(
             # name = obj.name if hasattr(obj, "name") else ""
             print(f"{obj.__class__.__name__} Attributes:")
 
+        sig_figs = getattr(obj, "sig_figs", 0)
         for att in attribute_names:
             # get attribute val from self, self.sec, or self.mat
             att_val = None
@@ -102,6 +111,6 @@ def report(
                 #     if with_clause:
                 #         # add clause
                 #         prefix = prefix + " " + clause
-                print(f"    {att}{prefix} = {att_val}")
+                print(f"    {att}{prefix} = {round_sig(att_val, sig_figs)}")
             # else:
             # print(f"Unknown attribute {att}")

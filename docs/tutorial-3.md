@@ -22,7 +22,7 @@ mat = SteelMaterial.from_dict(**sec_params)
 slenderness = SteelSlenderness(geom=geom, mat=mat)
 slenderness.report()
 
-print(f"Form factor for {slenderness.name} = {slenderness.k_f}")
+print(f"Form factor for {slenderness.name} = {slenderness.k_f:.3f}")
 print("(ANS = 0.948, 7th Ed. Hot Rolled and Structural Steel Products)")
 ```
 
@@ -91,10 +91,10 @@ from steelas.member.member import SteelSection, SteelMember
 sec = SteelSection.from_library(MemberLibrary.HollowSections, "200x5SHS (C450)")
 member = SteelMember(section=sec, l_ex=3800, l_ey=3800)
 
-print(f"\nNominal section compression capacity for {member.name}: {member.N_s} kN")
+print(f"\nNominal section compression capacity for {member.name}: {member.N_s:.0f} kN")
 print("(ANS: N_s = 1340 kN)\n")
 
-print(f"\nMember compression capacity for {member.name}: {member.phiN_c} kN")
+print(f"\nMember compression capacity for {member.name}: {member.phiN_c:.0f} kN")
 print("(ANS: phiN_c = 1050 kN)\n")
 
 print(f"\nSlenderness reduction factor, x axis: {member.alpha_cx}")
@@ -175,15 +175,15 @@ N_star, M_x_star, M_y_star = -50, 5, 1
 
 for alternative in (False, True):
     print(f"\nAlternative capacities: {alternative}")
-    print(f"phiM_rx = {member.phi * member.M_rx(N_star, alternative):.3g} kNm")
-    print(f"phiM_cx = {member.phi * member.M_cx(N_star, alternative):.3g} kNm")
-    print(f"phiM_iy = {member.phi * member.M_iy(N_star, alternative):.3g} kNm")
+    print(f"phiM_rx = {member.phi * member.M_rx(N_star, alternative):#.3g} kNm")
+    print(f"phiM_cx = {member.phi * member.M_cx(N_star, alternative):#.3g} kNm")
+    print(f"phiM_iy = {member.phi * member.M_iy(N_star, alternative):#.3g} kNm")
     section_ratio = member.section_biaxial_ratio(N_star, M_x_star, M_y_star, alternative)
     member_ratio = member.member_biaxial_ratio(N_star, M_x_star, M_y_star, alternative)
-    print(f"Section biaxial ratio = {section_ratio:.3g}")
-    print(f"Member biaxial ratio = {member_ratio:.3g}")
+    print(f"Section biaxial ratio = {section_ratio:#.3g}")
+    print(f"Member biaxial ratio = {member_ratio:#.3g}")
 
-print("\n(ANS general: phiM_rx = 35.9, phiM_cx = 13.8, phiM_iy = 4.46 kNm, ratios = 0.333, 0.365)")
-print("(ANS alternative: phiM_rx = 38.9, phiM_cx = 36.3, phiM_iy = 4.77 kNm, ratios = 0.0972, 0.174)")
+print("\n(ANS general: phiM_rx = 36.0, phiM_cx = 13.8, phiM_iy = 4.47 kNm, ratios = 0.333, 0.363)")
+print("(ANS alternative: phiM_rx = 38.9, phiM_cx = 36.3, phiM_iy = 4.78 kNm, ratios = 0.0973, 0.174)")
 ```
 
