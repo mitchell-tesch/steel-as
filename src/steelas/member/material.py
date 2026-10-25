@@ -122,7 +122,12 @@ class SteelMaterial:
         return fu_method
 
     def _f_u(self) -> float:
-        return self._fu_method()(self.grade)
+        # thickness-dependent grades (e.g. AS3678 GR450) use the thickest plate
+        return self._fu_method()(self.grade, self._max_thickness())
+
+    def _max_thickness(self) -> float:
+        thicknesses = [t for t in (self.t, self.t_f, self.t_w) if not isnan(t)]
+        return max(thicknesses) if thicknesses else np.nan
 
     def _fy_method(self) -> Callable:
         fy_method, _ = material_type_functions(self.mat_type)
@@ -231,8 +236,10 @@ def AS3678_fy(grade: str, t: float = np.nan) -> int:  # add grade as variable
             fy = 420
         elif t <= 50:
             fy = 400
+        else:
+            raise ValueError("GR450 plate thicker than 50 mm is not in AS4100 Table 2.1")
 
-    if grade == "GR400":
+    elif grade == "GR400":
         if t <= 12:
             fy = 400
         elif t <= 20:
@@ -292,14 +299,20 @@ def AS3678_fy(grade: str, t: float = np.nan) -> int:  # add grade as variable
 
 def AS3678_fu(grade: str, t: float = np.nan) -> int:
     """returns the tensile strength f_u of steel material grades as per
-    AS3678 (hot-rolled plates, floor plates, and slabs)"""
-
-    # NOTE - t input is unused - added to suppress as typehint error
+    AS3678 (hot-rolled plates, floor plates, and slabs). Only GR450 is
+    thickness-dependent and needs t."""
 
     # AS3678 in AS4100 TABLE 2.1
     match grade:
         case "GR450":
-            raise NotImplementedError  # thickness-dependent
+            if isnan(t):
+                raise ValueError("please provide a plate thickness t")
+            if t <= 20:
+                fu = 520
+            elif t <= 50:
+                fu = 500
+            else:
+                raise ValueError("GR450 plate thicker than 50 mm is not in AS4100 Table 2.1")
         case "GR400":
             fu = 480
         case "GR350":
