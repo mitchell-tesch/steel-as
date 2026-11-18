@@ -329,8 +329,13 @@ class SteelSlenderness:
         f_yw = self.mat.f_yw
         if isnan(f_yw):
             f_yw = self.mat.f_y
-        r1 = self.geom.d_p / t_w
-        r2 = 82 / (f_yw / 250) ** 0.5
+        return self._shear_slenderness_ratio(self.geom.d_p, t_w, f_yw)
+
+    @staticmethod
+    def _shear_slenderness_ratio(panel_width: float, thickness: float, f_y: float) -> float:
+        """Cl 5.11.2 shear yield limit divided by the panel width/thickness ratio."""
+        r1 = panel_width / thickness
+        r2 = 82 / (f_y / 250) ** 0.5
         return r2 / r1
 
     def _alpha_v(self) -> float:
