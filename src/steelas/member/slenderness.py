@@ -240,14 +240,16 @@ class SteelSlenderness:
         elif self.slender_section_type_x == 2:
             z = self.geom.Z_x * (self.lam_sy_x / self.lam_s_x) ** 2
         elif self.slender_section_type_x == 3:
-            raise NotImplementedError("Slender CHS sections not implemented")
+            z = self._chs_slender_Z_e(self.geom.Z_x, self.lam_s_x, self.lam_sy_x)
         return z
 
     @property
     def _Z_eyslender(self) -> float:
         # AS4100 Cl 5.2.5
         # TODO - do this properly
-        if self.geom.sec_type not in ["RHS", "SHS"]:
+        if self.geom.sec_type == "CHS":
+            Z_ey = self._chs_slender_Z_e(self.geom.Z_y, self.lam_s_y, self.lam_sy_y)
+        elif self.geom.sec_type not in ["RHS", "SHS"]:
             Z_ey = self.geom.Z_y * self.lam_sy_y / self.lam_s_y
         else:
             # https://www.steelforlifebluebook.co.uk/explanatory-notes/bs5950/effective-properties/
@@ -272,6 +274,15 @@ class SteelSlenderness:
             Z_ey = I_ey / x_xeff
 
         return Z_ey
+
+    @staticmethod
+    def _chs_slender_Z_e(Z: float, lam_s: float, lam_sy: float) -> float:
+        """AS4100 Cl 5.2.5 effective section modulus of a slender CHS (lam_s > lam_sy)
+
+        Z_e is the lesser of Z * (lam_sy / lam_s)**0.5 and Z * (2 * lam_sy / lam_s)**2,
+        where lam_s = (d_o / t) * (f_y / 250) per Cl 5.2.2.
+        """
+        return min(Z * (lam_sy / lam_s) ** 0.5, Z * (2 * lam_sy / lam_s) ** 2)
 
     def _alpha_b(self) -> float:
         """AS4100 Table 6.3.3A, member section constant"""
