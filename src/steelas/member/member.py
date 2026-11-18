@@ -670,9 +670,51 @@ class SteelMember:
     @property
     def V_nu(self):
         """Cl 5.11.3 non-uniform shear stress distribution"""
-        v_u = self.V_u
-        v_nu = 2 * v_u / (0.9 + self.section.shear_stress_uniformity)
+        return self._nonuniform_shear_capacity(self.V_u, self.section.shear_stress_uniformity)
+
+    @staticmethod
+    def _nonuniform_shear_capacity(v_u: float, stress_ratio: float) -> float:
+        v_nu = 2 * v_u / (0.9 + stress_ratio)
         return min(v_u, v_nu)
+
+    @property
+    def V_vy(self) -> float:
+        """Nominal minor-axis shear capacity (kN), Cl 5.11.
+
+        I/channel flanges: full area 2*b*t_f, panel width b, and maximum/average
+        stress ratio 1.5. RHS/SHS: two clear panels, uniform shear. CHS reuses
+        the direction-independent V_v. Existing V_v remains the major-axis
+        capacity. The new non-CHS result has no additional member-level rounding.
+        """
+        section = self.section
+        geom = section.geom
+        if geom.sec_type == "CHS":
+            return self.V_v
+        if geom.sec_type in ("UB", "UC", "TFB", "WB", "WC", "PFC"):
+            width, thickness, stress_ratio = geom.b, geom.t_f, 1.5
+        elif geom.sec_type in ("RHS", "SHS"):
+            width, thickness, stress_ratio = geom.b - 2 * geom.t, geom.t, 1.0
+        else:
+            raise NotImplementedError(
+                f"Minor-axis shear capacity is not implemented for {geom.sec_type}"
+            )
+        f_y = section.f_y
+        if not all(np.isfinite(v) and v > 0 for v in (width, thickness, f_y)):
+            raise ValueError(
+                "Minor-axis shear requires positive finite panel width, thickness and yield stress"
+            )
+        area = 2 * width * thickness
+        ratio = SteelSlenderness._shear_slenderness_ratio(width, thickness, f_y)
+        alpha_v = min(ratio**2, 1.0)
+        v_u = alpha_v * 0.6 * f_y * area / 1000
+        return self._nonuniform_shear_capacity(v_u, stress_ratio)
+
+    @property
+    def phiV_vy(self) -> float:
+        """Design minor-axis shear capacity (kN), using this member's phi."""
+        if self.section.sec_type == "CHS":
+            return self.phiV_v
+        return self.phi * self.V_vy
 
     @property
     def V_w(self) -> float:
